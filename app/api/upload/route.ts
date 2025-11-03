@@ -29,9 +29,8 @@ export async function POST(request: NextRequest) {
     // Save the uploaded file temporarily
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const filename = `${Date.now()}-${file.name}`;
-    const filepath = path.join(uploadsDir, filename);
-    await writeFile(filepath, buffer);
+   const filepath = path.join("/tmp", `${Date.now()}-${file.name}`);
+await writeFile(filepath, buffer);
 
     // Extract text from the file
 const extractedText = await extractTextFromFileBuffer(buffer, file.name);
