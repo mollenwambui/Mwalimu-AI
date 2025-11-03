@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, rm } from "fs/promises";
 import fs from "fs";
 import path from "path";
-import { extractTextFromFile } from "@/lib/extractText";
+import { extractTextFromFileBuffer } from "@/lib/extractText";
 import { analyzeContent } from "@/lib/analyzeContent";
 
 export async function POST(request: NextRequest) {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filepath, buffer);
 
     // Extract text from the file
-    const extractedText = await extractTextFromFile(filepath, file.name);
+const extractedText = await extractTextFromFileBuffer(buffer, file.name);
 
     // Analyze the content
     const analysis = analyzeContent(extractedText, disability);
