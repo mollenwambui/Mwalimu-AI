@@ -1,6 +1,6 @@
 // app/api/upload/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeContent } from '@/lib/analyzeContent';
+import { analyzeContent, adaptExam } from '@/lib/analyzeContent';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,11 +18,13 @@ export async function POST(request: NextRequest) {
     const disability = formData.get('disability') as string;
     const educationLevel = formData.get('educationLevel') as string;
     const subject = formData.get("subject") as string;
+    const type = formData.get("type") as string; // New field to distinguish between analysis and exam adaptation
 
     console.log("Form data:", { 
       disability, 
       educationLevel, 
-      subject, 
+      subject,
+      type, // Log the type
       fileName: file?.name,
       fileType: file?.type,
       fileSize: file?.size
@@ -126,14 +128,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Mistral API key not configured' }, { status: 500 });
     }
 
-    // Analyze content using AI
-    console.log("Starting content analysis...");
-    const analysis = await analyzeContent(fileContent, disability);
-    console.log("Analysis completed:", { 
-      summary: analysis.summary, 
-      score: analysis.overallScore,
-      linesCount: analysis.lines.length 
-    });
+    // Process based on type
+    let analysis;
+    if (type === 'exam') {
+      console.log("Starting exam adaptation...");
+      analysis = await adaptExam(fileContent, disability);
+      console.log("Exam adaptation completed:", { 
+        summary: analysis.summary, 
+        changesMade: analysis.changesMade,
+        recommendationsCount: analysis.recommendations.length 
+      });
+    } else {
+      console.log("Starting content analysis...");
+      analysis = await analyzeContent(fileContent, disability);
+      console.log("Analysis completed:", { 
+        summary: analysis.summary, 
+        score: analysis.overallScore,
+        linesCount: analysis.lines.length 
+      });
+    }
 
     return NextResponse.json({ 
       analysis,
@@ -142,7 +155,8 @@ export async function POST(request: NextRequest) {
         educationLevel,
         subject,
         fileName: file.name,
-        fileType: file.type
+        fileType: file.type,
+        type // Include the type in metadata
       }
     });
   } catch (error) {
