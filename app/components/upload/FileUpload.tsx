@@ -1,222 +1,123 @@
-"use client"
+// components/upload/FileUploader.tsx
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Upload, FileText, X } from 'lucide-react';
 
-import { useState } from "react"
-import { useForm } from "react-hook-form"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-
-interface FormData {
-  title: string
-  disability: string
-  educationLevel: string
-  subject: string
-  content: string
-  file?: FileList
+interface FileUploaderProps {
+  onFileSelect: (file: File) => void;
+  selectedFile?: File;
 }
 
-export default function FileUpload() {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>()
-  
-  const disability = watch("disability")
-  const educationLevel = watch("educationLevel")
-  const subject = watch("subject")
+export function FileUploader({ onFileSelect, selectedFile }: FileUploaderProps) {
+  const [dragActive, setDragActive] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const onSubmit = async (data: FormData) => {
-    setIsLoading(true)
-    
-    try {
-      const formData = new FormData()
-      formData.append("title", data.title)
-      formData.append("disability", data.disability)
-      formData.append("educationLevel", data.educationLevel)
-      formData.append("subject", data.subject)
-      formData.append("content", data.content)
-      
-      if (data.file && data.file.length > 0) {
-        formData.append("file", data.file[0])
-      }
-      
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-      
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
-      
-      const result = await response.json()
-      router.push(`/dashboard/result/${result.id}`)
-    } catch (error) {
-      console.error("Error uploading file:", error)
-      alert("Upload failed. Please try again.")
-    } finally {
-      setIsLoading(false)
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
     }
-  }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    // Check if file is a text file or PDF
+    const isTextFile = file.type === 'text/plain' || 
+                      file.name.toLowerCase().endsWith('.txt') ||
+                      file.type === 'application/pdf' || 
+                      file.name.toLowerCase().endsWith('.pdf');
+    
+    if (!isTextFile) {
+      alert('Please upload a text file (.txt) or PDF file');
+      return;
+    }
+    
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    
+    onFileSelect(file);
+  };
+
+  const onButtonClick = () => {
+    inputRef.current?.click();
+  };
+
+  const removeFile = () => {
+    onFileSelect(new File([], '', { type: 'text/plain' }));
+  };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Upload Educational Material</CardTitle>
-          <CardDescription>
-            Upload your teaching materials and get specific adaptations for students with disabilities.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Title Input */}
+    <div className="w-full">
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        accept=".txt,.pdf,text/plain,application/pdf"
+        onChange={handleChange}
+      />
+      
+      {selectedFile && selectedFile.size > 0 ? (
+        <div className="flex items-center justify-between p-4 border border-gray-300 rounded-md bg-gray-50">
+          <div className="flex items-center space-x-3">
+            <FileText className="h-8 w-8 text-blue-500" />
             <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                {...register("title", { required: "Title is required" })}
-                placeholder="e.g., Introduction to Fractions"
-              />
-              {errors.title && <p className="text-red-500 text-sm">{errors.title.message}</p>}
+              <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+              <p className="text-xs text-gray-500">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
             </div>
-            
-            {/* Dropdowns Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Disability Dropdown */}
-              <div>
-                <Label htmlFor="disability">Disability</Label>
-                <Select onValueChange={(value) => setValue("disability", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select disability" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dyslexia">Dyslexia</SelectItem>
-                    <SelectItem value="adhd">ADHD</SelectItem>
-                    <SelectItem value="anxiety">Anxiety</SelectItem>
-                    <SelectItem value="autism">Autism</SelectItem>
-                    <SelectItem value="visual-impairment">Visual Impairment</SelectItem>
-                    <SelectItem value="hearing-impairment">Hearing Impairment</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.disability && <p className="text-red-500 text-sm">Disability is required</p>}
-              </div>
-              
-              {/* Education Level Dropdown */}
-              <div>
-                <Label htmlFor="educationLevel">Education Level</Label>
-                <Select onValueChange={(value) => setValue("educationLevel", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary-1-3">Primary Grade 1-3</SelectItem>
-                    <SelectItem value="upper-primary-4-6">Upper Primary 4-6</SelectItem>
-                    <SelectItem value="junior-school">Junior School</SelectItem>
-                    <SelectItem value="senior-secondary">Senior Secondary</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.educationLevel && <p className="text-red-500 text-sm">Education level is required</p>}
-              </div>
-              
-              {/* Subject Dropdown */}
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Select onValueChange={(value) => setValue("subject", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Primary Grade 1-3 Subjects */}
-                    {educationLevel === "primary-1-3" && (
-                      <>
-                        <SelectItem value="math">Math</SelectItem>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="kiswahili">Kiswahili</SelectItem>
-                        <SelectItem value="cre">CRE</SelectItem>
-                        <SelectItem value="creative-arts">Creative Arts</SelectItem>
-                        <SelectItem value="environmental-studies">Environmental Studies</SelectItem>
-                        <SelectItem value="pe">PE</SelectItem>
-                      </>
-                    )}
-                    
-                    {/* Upper Primary 4-6 Subjects */}
-                    {educationLevel === "upper-primary-4-6" && (
-                      <>
-                        <SelectItem value="math">Math</SelectItem>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="kiswahili">Kiswahili</SelectItem>
-                        <SelectItem value="cre">CRE</SelectItem>
-                        <SelectItem value="social-studies">Social Studies</SelectItem>
-                        <SelectItem value="science">Science</SelectItem>
-                        <SelectItem value="agriculture">Agriculture</SelectItem>
-                        <SelectItem value="home-science">Home Science</SelectItem>
-                        <SelectItem value="creative-arts">Creative Arts</SelectItem>
-                        <SelectItem value="pe">PE</SelectItem>
-                      </>
-                    )}
-                    
-                    {/* Junior School Subjects */}
-                    {educationLevel === "junior-school" && (
-                      <>
-                        <SelectItem value="pre-tech">Pre-Technical courses</SelectItem>
-                        <SelectItem value="math">Math</SelectItem>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="kiswahili">Kiswahili</SelectItem>
-                        <SelectItem value="cre">CRE</SelectItem>
-                        <SelectItem value="science">Science</SelectItem>
-                        <SelectItem value="creative-art">Creative Art</SelectItem>
-                      </>
-                    )}
-                    
-                    {/* Senior Secondary Subjects */}
-                    {educationLevel === "senior-secondary" && (
-                      <>
-                        <SelectItem value="stem">STEM</SelectItem>
-                        <SelectItem value="social-sciences">Social Sciences</SelectItem>
-                        <SelectItem value="sports">Sports</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-                {errors.subject && <p className="text-red-500 text-sm">Subject is required</p>}
-              </div>
-            </div>
-            
-            {/* Content Textarea */}
-            <div>
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                {...register("content", { required: "Content is required" })}
-                placeholder="Paste your educational content here or upload a file below"
-                rows={6}
-              />
-              {errors.content && <p className="text-red-500 text-sm">{errors.content.message}</p>}
-            </div>
-            
-            {/* File Upload */}
-            <div>
-              <Label htmlFor="file">Or Upload a File</Label>
-              <Input
-                id="file"
-                type="file"
-                {...register("file")}
-                accept=".pdf,.doc,.docx,.txt"
-              />
-              <p className="text-sm text-gray-500 mt-1">Supported formats: PDF, DOC, DOCX, TXT</p>
-            </div>
-            
-            {/* Submit Button */}
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Processing..." : "Generate Adapted Content"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={removeFile}
+            className="h-8 w-8 p-0 rounded-full hover:bg-gray-200"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <div
+          className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
+            dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={onButtonClick}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <Upload className="w-8 h-8 mb-2 text-gray-500" />
+            <p className="mb-2 text-sm text-gray-500">
+              <span className="font-semibold text-blue-600">Click to upload</span> or drag and drop
+            </p>
+            <p className="text-xs text-gray-500">TXT or PDF files only (max 5MB)</p>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

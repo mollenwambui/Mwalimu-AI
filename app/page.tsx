@@ -115,12 +115,22 @@ export default function HomePage() {
                       <SelectValue placeholder="Select disability" />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* Learning Disabilities */}
                       <SelectItem value="dyslexia">Dyslexia</SelectItem>
+                      <SelectItem value="dysgraphia">Dysgraphia</SelectItem>
+                      <SelectItem value="dyscalculia">Dyscalculia</SelectItem>
+                      
+                      {/* Neurodevelopmental Disorders */}
                       <SelectItem value="adhd">ADHD</SelectItem>
-                      <SelectItem value="anxiety">Anxiety</SelectItem>
-                      <SelectItem value="autism">Autism</SelectItem>
-                      <SelectItem value="visual-impairment">Visual Impairment</SelectItem>
+                      <SelectItem value="autism">Autism/Aspergers</SelectItem>
+                      <SelectItem value="down-syndrome">Down Syndrome</SelectItem>
+                      
+                      {/* Other Categories */}
+                      <SelectItem value="gifted-talented">Gifted and Talented</SelectItem>
+                      <SelectItem value="emotional-behavioral">Emotional/Behavioral Challenges</SelectItem>
                       <SelectItem value="hearing-impairment">Hearing Impairment</SelectItem>
+                      <SelectItem value="visual-impairment">Visual Impairment</SelectItem>
+                      <SelectItem value="communication-disorder">Communication Disorders</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.disability && <p className="text-red-500 text-sm">Disability is required</p>}
@@ -242,7 +252,7 @@ export default function HomePage() {
               onClick={handleCloseReport}
               className="absolute top-4 right-4 h-8 w-8 p-0 rounded-full hover:bg-gray-200 z-10"
             >
-              <span className="text-gray-500 text-2xl">X</span>
+              <span className="text-gray-500 text-xl">×</span>
             </Button>
             
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-t-lg">
@@ -281,9 +291,28 @@ export default function HomePage() {
                         <span className="font-medium">Why:</span> {line.reason}
                       </div>
                     )}
+                    {line.strategy && (
+                      <div className="mt-1 text-sm text-gray-600">
+                        <span className="font-medium">Strategy:</span> {line.strategy}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+              
+              {analysisResult.recommendations.length > 0 && (
+                <div className="mt-10 pt-8 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Recommendations</h3>
+                  <ul className="space-y-2">
+                    {analysisResult.recommendations.map((recommendation, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-indigo-600 mr-2">•</span>
+                        <span className="text-gray-700">{recommendation}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               
               <div className="mt-10 pt-8 border-t border-gray-200 flex justify-center">
                 <Button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-md shadow-md">
