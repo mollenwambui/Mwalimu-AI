@@ -144,23 +144,23 @@ export default function HomePage() {
           </div>
           
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-            Mwalimu <span className="text-indigo-600">AI</span>
+            Mwalim <span className="text-indigo-600">AI</span>
           </h1>
           <p className="text-lg text-gray-700 max-w-3xl mx-auto mb-10">
             Upload your teaching materials and get specific, line-by-line adaptations 
-            for students with disabilities.
+            for students with learning difficulties/challenges.
           </p>
           
           {/* Identify Disability Button */}
           <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-            Not sure about a student's disability? Enter their characteristics to get AI-powered suggestions.
+  Not sure about a student's learning challenges? Enter their characteristics to get AI-powered suggestions.
           </p>
           <div className="pt-4">
             <Button 
               onClick={openModal}
               className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-medium py-3 px-8 rounded-md shadow-md"
             >
-              Identify Potential Disability
+              Identify Potential Learning Challenges
             </Button>
           </div>
         </div>
@@ -172,7 +172,7 @@ export default function HomePage() {
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
             <CardTitle className="text-2xl text-gray-900">Analyze Your Content</CardTitle>
             <CardDescription className="text-gray-600">
-              Upload educational material and get specific adaptations based on disability
+              Upload educational material and get specific adaptations based on learning challenges
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 px-8">
@@ -218,10 +218,10 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Disability Dropdown */}
                 <div>
-                  <Label htmlFor="disability" className="text-gray-700">Disability</Label>
+                  <Label htmlFor="disability" className="text-gray-700">Learning Challenges</Label>
                   <Select onValueChange={(value) => setValue("disability", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select disability" />
+<SelectValue placeholder="Select support area" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dyslexia">Dyslexia</SelectItem>
@@ -505,7 +505,7 @@ export default function HomePage() {
             <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all pointer-events-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Identify Potential Disability</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Identify Potential Learning Challenges</h2>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -534,7 +534,7 @@ export default function HomePage() {
                       disabled={isIdentifying} 
                       className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-medium py-3 rounded-md shadow-md"
                     >
-                      {isIdentifying ? "Analyzing Characteristics..." : "Identify Potential Disability"}
+                      {isIdentifying ? "Analyzing Characteristics..." : "Identify Potential Learning Challenges"}
                     </Button>
                   </form>
                 ) : (
