@@ -36,6 +36,9 @@ export default function HomePage() {
   const [identificationResult, setIdentificationResult] = useState<DisabilityIdentificationResult | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
+  const [isDisabilityDownloadModalOpen, setIsDisabilityDownloadModalOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormData>()
   const { register: registerIdentification, handleSubmit: handleIdentificationSubmit, reset: resetIdentification, formState: { errors: identificationErrors } } = useForm<DisabilityIdentificationData>()
   
@@ -110,6 +113,122 @@ export default function HomePage() {
     }
   }
 
+  const handleDownload = async (format: 'pdf' | 'docx') => {
+    if (!analysisResult) return
+    
+    setIsDownloading(true)
+    
+    try {
+      const response = await fetch("/api/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          analysisResult: analysisResult,
+          format: format,
+          contentType: 'overallScore' in analysisResult ? 'analysis' : 'exam'
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Download failed")
+      }
+      
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('content-disposition')
+      let filename = `adapted-content.${format}`
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      // Create a blob from the response
+      const blob = await response.blob()
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      
+      // Clean up
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      setIsDownloadModalOpen(false)
+    } catch (error) {
+      console.error("Error downloading file:", error)
+      alert(`Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  const handleDisabilityDownload = async (format: 'pdf' | 'docx') => {
+    if (!identificationResult) return
+    
+    setIsDownloading(true)
+    
+    try {
+      const response = await fetch("/api/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identificationResult: identificationResult,
+          format: format,
+          contentType: 'disability'
+        }),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Download failed")
+      }
+      
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('content-disposition')
+      let filename = `disability-report.${format}`
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1]
+        }
+      }
+      
+      // Create a blob from the response
+      const blob = await response.blob()
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      
+      // Clean up
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      setIsDisabilityDownloadModalOpen(false)
+    } catch (error) {
+      console.error("Error downloading file:", error)
+      alert(`Download failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   const handleCloseReport = () => {
     setAnalysisResult(null)
   }
@@ -124,6 +243,22 @@ export default function HomePage() {
     setIdentificationResult(null)
     setIsModalOpen(true)
     resetIdentification()
+  }
+
+  const openDownloadModal = () => {
+    setIsDownloadModalOpen(true)
+  }
+
+  const closeDownloadModal = () => {
+    setIsDownloadModalOpen(false)
+  }
+
+  const openDisabilityDownloadModal = () => {
+    setIsDisabilityDownloadModalOpen(true)
+  }
+
+  const closeDisabilityDownloadModal = () => {
+    setIsDisabilityDownloadModalOpen(false)
   }
 
   return (
@@ -153,7 +288,7 @@ export default function HomePage() {
           
           {/* Identify Disability Button */}
           <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-  Not sure about a student's learning challenges? Enter their characteristics to get AI-powered suggestions.
+            Not sure about a student's learning challenges? Enter their characteristics to get AI-powered suggestions.
           </p>
           <div className="pt-4">
             <Button 
@@ -221,7 +356,7 @@ export default function HomePage() {
                   <Label htmlFor="disability" className="text-gray-700">Learning Challenges</Label>
                   <Select onValueChange={(value) => setValue("disability", value)}>
                     <SelectTrigger>
-<SelectValue placeholder="Select support area" />
+                      <SelectValue placeholder="Select support area" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="dyslexia">Dyslexia</SelectItem>
@@ -484,7 +619,10 @@ export default function HomePage() {
               )}
               
               <div className="mt-10 pt-8 border-t border-gray-200 flex justify-center">
-                <Button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-md shadow-md">
+                <Button 
+                  onClick={openDownloadModal}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-md shadow-md"
+                >
                   {'overallScore' in analysisResult ? "Download Adapted Content" : "Download Adapted Exam"}
                 </Button>
               </div>
@@ -574,10 +712,16 @@ export default function HomePage() {
                       </div>
                     </div>
                     
-                    <div className="flex justify-center">
+                    <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4">
+                      <Button 
+                        onClick={openDisabilityDownloadModal}
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-md shadow-md"
+                      >
+                        Download Report
+                      </Button>
                       <Button 
                         onClick={handleCloseIdentification}
-                        className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-medium py-2 px-6 rounded-md shadow-md"
+                        className="bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white font-medium py-2 px-6 rounded-md shadow-md"
                       >
                         Close
                       </Button>
@@ -590,6 +734,146 @@ export default function HomePage() {
         </>
       )}
       
+
+      {/* Download Modal for Analysis Result */}
+      {isDownloadModalOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={closeDownloadModal}
+          />
+          
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full transform transition-all">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Download Adapted Content</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={closeDownloadModal}
+                    className="h-8 w-8 p-0 rounded-full hover:bg-gray-200"
+                  >
+                    <span className="text-gray-500 text-xl">×</span>
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-gray-600">Choose the format you'd like to download the adapted content:</p>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> Both formats generate properly formatted files that can be opened directly.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      onClick={() => handleDownload('pdf')}
+                      disabled={isDownloading}
+                      className="flex flex-col items-center justify-center p-4 h-auto bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-800"
+                    >
+                      <svg className="w-8 h-8 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="font-medium">PDF</span>
+                      <span className="text-xs text-gray-500 mt-1">Opens in PDF readers</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleDownload('docx')}
+                      disabled={isDownloading}
+                      className="flex flex-col items-center justify-center p-4 h-auto bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-800"
+                    >
+                      <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="font-medium">DOCX</span>
+                      <span className="text-xs text-gray-500 mt-1">Opens in Word</span>
+                    </Button>
+                  </div>
+                  
+                  {isDownloading && (
+                    <div className="text-center text-sm text-gray-500 mt-2">
+                      Preparing your download...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Download Modal for Disability Identification */}
+      {isDisabilityDownloadModalOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={closeDisabilityDownloadModal}
+          />
+          
+          <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full transform transition-all">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900">Download Disability Report</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={closeDisabilityDownloadModal}
+                    className="h-8 w-8 p-0 rounded-full hover:bg-gray-200"
+                  >
+                    <span className="text-gray-500 text-xl">×</span>
+                  </Button>
+                </div>
+                
+                <div className="space-y-4">
+                  <p className="text-gray-600">Choose the format you'd like to download the disability identification report:</p>
+                  
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <p className="text-sm text-purple-800">
+                      <strong>Note:</strong> Both formats generate properly formatted files that can be opened directly.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button
+                      onClick={() => handleDisabilityDownload('pdf')}
+                      disabled={isDownloading}
+                      className="flex flex-col items-center justify-center p-4 h-auto bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-800"
+                    >
+                      <svg className="w-8 h-8 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="font-medium">PDF</span>
+                      <span className="text-xs text-gray-500 mt-1">Opens in PDF readers</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={() => handleDisabilityDownload('docx')}
+                      disabled={isDownloading}
+                      className="flex flex-col items-center justify-center p-4 h-auto bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-800"
+                    >
+                      <svg className="w-8 h-8 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span className="font-medium">DOCX</span>
+                      <span className="text-xs text-gray-500 mt-1">Opens in Word</span>
+                    </Button>
+                  </div>
+                  
+                  {isDownloading && (
+                    <div className="text-center text-sm text-gray-500 mt-2">
+                      Preparing your download...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
       
       {/* Footer */}
       <footer className="py-8 text-center text-gray-500 text-sm border-t border-gray-200 bg-white">
